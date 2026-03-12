@@ -39,7 +39,7 @@ use crate_path::CratePath;
 /// - `#[surreal(rename = "name")]` - Rename a field or variant
 /// - `#[surreal(skip)]` - Skip a field during serialization
 /// - `#[surreal(wrap)]` - Wrap a type that doesn't implement `SurrealValue` but does implement
-///   `Serialize + Deserialize` with `Wrapper`
+///   `Serialize + Deserialize` with `SerdeWrapper`
 ///
 /// # Examples
 ///
