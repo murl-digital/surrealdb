@@ -69,11 +69,11 @@ impl NamedFields {
 					let field_name_str = field.ident.to_string();
 					let obj_key = field.rename.as_ref().unwrap_or(&field_name_str);
 					let ty = &field.ty;
-					let potentially_wrapped_ty = if field.wrap {
+					let (potentially_wrapped_ty, val_access) = if field.wrap {
 						let crate_path = crate_path.wrapper();
-						quote! { #crate_path::<#ty> }
+						(quote! { #crate_path::<#ty> }, quote! {.0})
 					} else {
-						quote! { #ty }
+						(quote! { #ty }, quote! {})
 					};
 					let error_internal = crate_path.error_internal(quote! {
 						format!("Failed to deserialize field '{}' on type '{}': {}", #field_name_str, #name, e)
@@ -84,13 +84,13 @@ impl NamedFields {
 						quote! {
 							result.#field_name = <#potentially_wrapped_ty as SurrealValue>::from_value(
 								Value::Object(map.clone())
-							).map_err(|e| #error_internal)?;
+							).map_err(|e| #error_internal)?#val_access;
 						}
 					} else {
 						quote! {
 							if let Some(field_value) = map.remove(#obj_key) {
 								result.#field_name = <#potentially_wrapped_ty as SurrealValue>::from_value(field_value)
-									.map_err(|e| #error_internal)?;
+									.map_err(|e| #error_internal)?#val_access;
 							}
 						}
 					}

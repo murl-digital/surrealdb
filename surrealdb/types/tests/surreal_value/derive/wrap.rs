@@ -170,3 +170,83 @@ fn value_to_tuple_struct_2x() {
 
 	assert_eq!(to_struct, expected_value);
 }
+
+#[derive(SurrealValue, PartialEq, Debug)]
+#[surreal(crate = "surrealdb_types")]
+#[surreal(default)]
+struct PersonWithOptionalFriend {
+	name: String,
+	#[surreal(wrap)]
+	friend: GerardTheValueless,
+}
+
+impl Default for PersonWithOptionalFriend {
+	fn default() -> Self {
+		PersonWithOptionalFriend {
+			name: String::new(),
+			friend: GerardTheValueless {
+				name: "default friend".into(),
+				burgers_eaten: 0,
+			},
+		}
+	}
+}
+
+#[test]
+fn default_container_wrap_field_present() {
+	let value = Value::Object(object! {
+		name: "alice",
+		friend: object! {
+			name: "Gerard the Valueless",
+			burgers_eaten: i64::MAX
+		}
+	});
+	let parsed = PersonWithOptionalFriend::from_value(value).expect("should deserialize");
+	assert_eq!(parsed.name, "alice");
+	assert_eq!(parsed.friend.name, "Gerard the Valueless");
+	assert_eq!(parsed.friend.burgers_eaten, i64::MAX);
+}
+
+#[test]
+fn default_container_wrap_field_missing_uses_default() {
+	let value = Value::Object(object! { name: "bob" });
+	let parsed = PersonWithOptionalFriend::from_value(value).expect("should deserialize");
+	assert_eq!(parsed.name, "bob");
+	assert_eq!(parsed.friend.name, "default friend");
+	assert_eq!(parsed.friend.burgers_eaten, 0);
+}
+
+#[derive(SurrealValue, PartialEq, Debug)]
+#[surreal(crate = "surrealdb_types")]
+#[surreal(default)]
+struct OuterWithFlattenedWrap {
+	title: String,
+	#[surreal(flatten)]
+	#[surreal(wrap)]
+	inner: GerardTheValueless,
+}
+
+impl Default for OuterWithFlattenedWrap {
+	fn default() -> Self {
+		OuterWithFlattenedWrap {
+			title: "untitled".into(),
+			inner: GerardTheValueless {
+				name: "default".into(),
+				burgers_eaten: 0,
+			},
+		}
+	}
+}
+
+#[test]
+fn default_container_wrap_flatten_roundtrip() {
+	let value = Value::Object(object! {
+		title: "story",
+		name: "Gerard the Valueless",
+		burgers_eaten: 42i64
+	});
+	let parsed = OuterWithFlattenedWrap::from_value(value).expect("should deserialize");
+	assert_eq!(parsed.title, "story");
+	assert_eq!(parsed.inner.name, "Gerard the Valueless");
+	assert_eq!(parsed.inner.burgers_eaten, 42);
+}
